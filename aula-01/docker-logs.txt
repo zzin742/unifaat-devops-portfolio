@@ -1,0 +1,28 @@
+﻿=== docker logs portfolio-test ===
+Portfolio API rodando na porta 3000
+
+===================================
+Container running (docker ps):
+===================================
+CONTAINER ID   IMAGE                  COMMAND                  CREATED         STATUS         PORTS                                         NAMES 1511d3080a3b   portfolio-aula01:1.0   "docker-entrypoint.s…"   4 minutes ago   Up 4 minutes   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   portfolio-test
+
+===================================
+API Response (GET /):
+===================================
+{
+    "servico":  "DevOps Portfolio API",
+    "aluno":  "José Henrique Teixeira Luiz",
+    "ra":  "3225002",
+    "aula":  "01 - Fundamentos de Git e Docker",
+    "status":  "online",
+    "timestamp":  "2026-08-14T00:26:13.328Z"
+}
+
+===================================
+API Response (GET /health):
+===================================
+{
+    "status":  "healthy",
+    "uptime":  302.194148943,
+    "version":  "1.0.0"
+}
