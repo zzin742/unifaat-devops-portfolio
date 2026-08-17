@@ -1,0 +1,43 @@
+﻿=== docker compose ps ===
+NAME                IMAGE                COMMAND                  SERVICE    CREATED              STATUS                        PORTS technova-api        aula-02-api          "docker-entrypoint.s…"   api        About a minute ago   Up About a minute             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp technova-postgres   postgres:15-alpine   "docker-entrypoint.s…"   postgres   About a minute ago   Up About a minute (healthy)   0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp technova-redis      redis:7-alpine       "docker-entrypoint.s…"   redis      About a minute ago   Up About a minute (healthy)   0.0.0.0:6380->6379/tcp, [::]:6380->6379/tcp
+
+===================================
+API - GET / (rota principal)
+===================================
+{
+    "servico":  "TechNova API - Aula 02 TF",
+    "aluno":  "José Henrique Teixeira Luiz",
+    "ra":  "3225002",
+    "status":  "online",
+    "banco":  "postgres:5432/technova",
+    "cache":  "redis:6379",
+    "timestamp":  "2026-08-17T00:14:42.092Z"
+}
+
+===================================
+API - GET /health
+===================================
+{
+    "status":  "healthy",
+    "uptime":  65.167301918,
+    "servicos":  {
+                     "api":  "online",
+                     "banco":  "postgres:5432",
+                     "cache":  "redis:6379"
+                 }
+}
+
+===================================
+PostgreSQL - SELECT version()
+===================================
+                                         version                                           ------------------------------------------------------------------------------------------  PostgreSQL 15.19 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit (1 row) 
+
+===================================
+Redis - PING
+===================================
+PONG
+
+===================================
+Rede customizada
+===================================
+technova-net - driver: bridge - containers: 3
