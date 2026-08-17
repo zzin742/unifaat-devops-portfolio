@@ -1,0 +1,12 @@
+{
+  "name": "technova-aula02-tf",
+  "version": "1.0.0",
+  "description": "TF Aula 02 - Docker Compose com 3 serviços",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "4.18.2"
+  }
+}

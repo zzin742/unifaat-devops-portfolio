@@ -1,0 +1,90 @@
+# Docker Compose - TF Aula 02 - TechNova
+# Ambiente multi-container: API Node.js + PostgreSQL + Redis
+# Aluno: José Henrique Teixeira Luiz (RA 3225002)
+
+services:
+
+  # ============================================================
+  # API Node.js/Express - build a partir do Dockerfile local
+  # ============================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: technova-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - technova-net
+
+  # ============================================================
+  # PostgreSQL 15 - banco de dados com volume nomeado
+  # ============================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: technova-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # host 5433 pra não colidir com Postgres local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - technova-net
+
+  # ============================================================
+  # Redis 7 - cache
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: technova-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # host 6380 pra não colidir com Redis local
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - technova-net
+
+# ============================================================
+# Volumes - persistência do PostgreSQL
+# ============================================================
+volumes:
+  postgres-data:
+    name: technova-postgres-data
+
+# ============================================================
+# Rede customizada - isola os serviços do resto do host
+# ============================================================
+networks:
+  technova-net:
+    name: technova-net
+    driver: bridge
