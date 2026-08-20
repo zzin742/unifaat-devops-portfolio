@@ -1,0 +1,12 @@
+# Estado do Terraform — contem valores sensiveis em texto puro.
+# Em producao vai pra backend remoto (S3 + DynamoDB lock), nunca pro git.
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+*.tfvars
+crash.log
+
+# Chaves
+*.pem
+*.key
