@@ -10,3 +10,4 @@ crash.log
 # Chaves
 *.pem
 *.key
+tfplan

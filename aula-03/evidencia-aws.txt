@@ -1,0 +1,42 @@
+================================================================================
+EVIDENCIA DE EXECUCAO NA AWS - Aula 03 (Terraform + IAM)
+Aluno: Jose Henrique Teixeira Luiz | RA: 3225002
+Conta AWS: 065247282195 | Regiao: us-east-1
+================================================================================
+
+--- terraform apply ---
+Apply complete! Resources: 19 added, 0 changed, 0 destroyed.
+
+--- IAM GROUPS criados ---
+3225002-technova-developers	arn:aws:iam::065247282195:group/technova/3225002-technova-developers
+3225002-technova-platform-eng	arn:aws:iam::065247282195:group/technova/3225002-technova-platform-eng
+
+--- IAM USERS criados ---
+3225002-technova-juliana-dev	arn:aws:iam::065247282195:user/technova/3225002-technova-juliana-dev
+3225002-technova-lucas-intern	arn:aws:iam::065247282195:user/technova/3225002-technova-lucas-intern
+3225002-technova-rafael-platform	arn:aws:iam::065247282195:user/technova/3225002-technova-rafael-platform
+
+--- CUSTOM POLICIES criadas ---
+3225002-technova-ec2-app-data	arn:aws:iam::065247282195:policy/technova/3225002-technova-ec2-app-data
+3225002-technova-ec2-s3-full	arn:aws:iam::065247282195:policy/technova/3225002-technova-ec2-s3-full
+3225002-technova-deny-destructive	arn:aws:iam::065247282195:policy/technova/3225002-technova-deny-destructive
+3225002-technova-s3-read	arn:aws:iam::065247282195:policy/technova/3225002-technova-s3-read
+
+--- SERVICE ROLE + INSTANCE PROFILE ---
+3225002-technova-ec2-role	arn:aws:iam::065247282195:role/technova/3225002-technova-ec2-role
+3225002-technova-ec2-profile	arn:aws:iam::065247282195:instance-profile/technova/3225002-technova-ec2-profile
+
+--- MEMBERSHIPS (rafael em 2 grupos) ---
+3225002-technova-juliana-dev -> 3225002-technova-developers
+3225002-technova-rafael-platform -> 3225002-technova-platform-eng	3225002-technova-developers
+3225002-technova-lucas-intern -> 3225002-technova-developers
+
+--- TAGS aplicadas (exemplo: role) ---
+Aula	03
+Name	3225002-technova-ec2-role
+Project	TechNova
+Disciplina	DevOps - UniFAAT 2026-2
+Environment	dev
+Aluno	Jose Henrique Teixeira Luiz
+ManagedBy	Terraform
+RA	3225002
