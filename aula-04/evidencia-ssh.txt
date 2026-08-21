@@ -1,0 +1,26 @@
+$ ssh -i ~/.ssh/technova-key.pem ec2-user@100.48.223.141
+
+--- versoes ---
+v18.20.8
+10.8.2
+git version 2.50.1
+
+--- identidade via Instance Profile (sem access key no disco) ---
+{
+    "UserId": "AROAQ6MIKQQJ4MRDISBEI:i-004a6aec37d889978",
+    "Account": "065247282195",
+    "Arn": "arn:aws:sts::065247282195:assumed-role/3225002-technova-ec2-role-a04/i-004a6aec37d889978"
+}
+
+--- o Instance Profile realmente da acesso ao S3? ---
+(nenhum bucket na conta, mas a chamada foi AUTORIZADA)
+
+--- prova de menor privilegio: S3 e READ-ONLY ---
+make_bucket failed: s3://teste-negado-3225002 An error occurred (AccessDenied) when calling the CreateBucket operation: User: arn:aws:sts::065247282195:assumed-role/3225002-technova-ec2-role-a04/i-004a6aec37d889978 is not authorized to perform: s3:CreateBucket on resource: "arn:aws:s3:::teste-negado-3225002" because no identity-based policy allows the s3:CreateBucket action
+
+--- confirma que NAO existe credencial em disco ---
+ls: cannot access '/home/ec2-user/.aws': No such file or directory
+
+--- servico ---
+active
+enabled

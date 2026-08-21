@@ -1,0 +1,12 @@
+# Estado do Terraform — contem a chave privada SSH em texto puro
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+*.tfvars
+tfplan
+crash.log
+
+# Chaves
+*.pem
+*.key

@@ -1,0 +1,34 @@
+$ curl http://100.48.223.141:3000
+{
+    "message": "TechNova API - Rodando na AWS!",
+    "aluno": "Jose Henrique Teixeira Luiz",
+    "ra": "3225002",
+    "disciplina": "DevOps - UniFAAT 2026-2",
+    "aula": "04 - VPC + EC2 Multi-AZ",
+    "hostname": "ip-10-0-1-148.ec2.internal",
+    "platform": "linux",
+    "uptime": "84 segundos",
+    "timestamp": "2026-08-21T00:21:12.837Z"
+}
+
+$ curl http://100.48.223.141:3000/health
+{
+    "status": "healthy",
+    "service": "technova-api"
+}
+
+$ curl http://100.48.223.141:3000/orders
+{
+    "orders": [
+        {
+            "id": 1,
+            "product": "Widget A",
+            "status": "shipped"
+        },
+        {
+            "id": 2,
+            "product": "Widget B",
+            "status": "processing"
+        }
+    ]
+}
