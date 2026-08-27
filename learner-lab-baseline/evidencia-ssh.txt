@@ -1,0 +1,22 @@
+=== 1. IDENTIDADE (credencial temporaria via instance profile) ===
+{
+    "UserId": "AROAUR6TJ7VPFJ4FLFSHR:i-0353b56d71667dad4",
+    "Account": "313438895454",
+    "Arn": "arn:aws:sts::313438895454:assumed-role/LabRole/i-0353b56d71667dad4"
+}
+
+=== 2. ~/.aws EM DISCO? ===
+  ~/.aws NAO existe - nenhuma access key gravada em disco
+
+=== 3. IMDSv1 (sem token) - checando o STATUS HTTP ===
+  HTTP 401 -> [OK] bloqueado, IMDSv2 exigido
+
+=== 4. IMDSv2 (com token) ===
+  instance-id: i-0353b56d71667dad4
+  AZ .........: us-east-1a
+
+=== 5. ESCOPO DA LabRole (leitura, sem criar nada) ===
+  s3:ListAllMyBuckets .....: PERMITIDO
+  ec2:DescribeInstances ...: PERMITIDO
+  iam:ListRoles ...........: PERMITIDO
+  iam:CreateUser (dry) ....: NEGADO
