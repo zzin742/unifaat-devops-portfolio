@@ -1,0 +1,9 @@
+# Copie para terraform.tfvars e preencha. O arquivo real esta no .gitignore
+# porque carrega a senha do banco.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# Para gerar uma senha forte:
+#   openssl rand -base64 24 | tr -d '/+=' | head -c 24
+
+db_password = "TROQUE-POR-UMA-SENHA-FORTE"
