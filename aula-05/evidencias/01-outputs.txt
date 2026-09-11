@@ -1,0 +1,24 @@
+azs_das_subnets_privadas = {
+  "private-a" = "us-east-1a"
+  "private-b" = "us-east-1b"
+}
+comando_teste_rds = "PGPASSWORD='<senha>' /usr/local/bin/testar-rds.sh"
+connection_string = <sensitive>
+ec2_public_ip = "3.239.14.144"
+instance_profile_usado = "arn:aws:iam::925874601971:instance-profile/LabInstanceProfile"
+rds_address = "technova-db.cjhcl1ffaieq.us-east-1.rds.amazonaws.com"
+rds_criptografado = true
+rds_endpoint = "technova-db.cjhcl1ffaieq.us-east-1.rds.amazonaws.com:5432"
+rds_publicamente_acessivel = false
+ssh_command = "ssh -i ~/.ssh/labsuser.pem ec2-user@3.239.14.144"
+subnet_publica = "subnet-05656806e73dfd6b9"
+subnets_privadas = {
+  "private-a" = "subnet-06ae45f800639790a"
+  "private-b" = "subnet-05acd1759578b63d7"
+}
+vpc_id = "vpc-03ce6769fd87fcb55"
+
+Warning: Deprecated Parameter
+
+The parameter "dynamodb_table" is deprecated. Use parameter "use_lockfile"
+instead.

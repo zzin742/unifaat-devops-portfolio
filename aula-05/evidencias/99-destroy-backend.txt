@@ -1,0 +1,3 @@
+aws_dynamodb_table.lock: Destruction complete after 8s
+
+Destroy complete! Resources: 6 destroyed.

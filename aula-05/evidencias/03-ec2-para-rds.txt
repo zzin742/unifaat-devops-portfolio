@@ -1,0 +1,40 @@
+=== IDENTIDADE DA EC2 (credencial temporaria via instance profile) ===
+{
+    "UserId": "AROA5PETNH7Z3VOXW6U4O:i-087f32ef33a370c1f",
+    "Account": "925874601971",
+    "Arn": "arn:aws:sts::925874601971:assumed-role/LabRole/i-087f32ef33a370c1f"
+}
+
+=== ~/.aws EM DISCO? (nao deve existir) ===
+  ~/.aws NAO existe - nenhuma access key gravada
+
+=== TESTE AUTOMATICO DE ALCANCE (feito pelo user data) ===
+=== teste de alcance ao RDS: 2026-09-11T00:34:10+00:00 ===
+host: technova-db.cjhcl1ffaieq.us-east-1.rds.amazonaws.com porta: 5432
+RESULTADO: porta 5432 ALCANCAVEL
+  -> rota, DNS e security group estao corretos
+
+=== TESTE AUTENTICADO: EC2 -> RDS via psql ===
+=== 1. versao do servidor ===
+                                              version                                              
+---------------------------------------------------------------------------------------------------
+ PostgreSQL 15.17 on x86_64-pc-linux-gnu, compiled by x86_64-pc-linux-gnu-gcc (GCC) 12.4.0, 64-bit
+(1 row)
+
+=== 2. criando tabela e dados ===
+CREATE TABLE
+INSERT 0 3
+=== 3. consultando os dados persistidos ===
+ id |   cliente    |       produto        |  valor  |          criado_em           
+----+--------------+----------------------+---------+------------------------------
+  1 | Ana Souza    | Notebook TechNova 14 | 4299.00 | 2026-09-11 00:34:28.01786+00
+  2 | Bruno Lima   | Monitor 27 polegadas | 1899.90 | 2026-09-11 00:34:28.01786+00
+  3 | Carla Mendes | Teclado mecanico     |  459.00 | 2026-09-11 00:34:28.01786+00
+(3 rows)
+
+=== 4. confirmando que os dados estao no RDS, nao em memoria ===
+ total_pedidos 
+---------------
+             3
+(1 row)
+

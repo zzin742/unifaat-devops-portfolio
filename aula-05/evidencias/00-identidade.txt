@@ -1,0 +1,5 @@
+{
+    "UserId": "AROA5PETNH7Z6NHLYGBC6:user5367843=Jos___Henrique_Teixeira_Luiz",
+    "Account": "925874601971",
+    "Arn": "arn:aws:sts::925874601971:assumed-role/voclabs/user5367843=Jos___Henrique_Teixeira_Luiz"
+}

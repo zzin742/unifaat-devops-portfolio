@@ -97,6 +97,54 @@ terraform apply
 
 ---
 
+## ⚠️ A SCP do Learner Lab bloqueia o provider da AWS
+
+Descoberto na execução real. O `apply` do backend aborta na criação do bucket:
+
+```
+Error: reading S3 Bucket (...) object lock configuration:
+api error AccessDenied: ... is not authorized to perform:
+s3:GetBucketObjectLockConfiguration ... with an explicit deny in a
+service control policy
+```
+
+Não é permissão faltando — é **negação explícita na Service Control Policy** da
+organização do AWS Academy. O provider AWS v5, logo depois de criar um
+`aws_s3_bucket`, lê a configuração de *object lock* para popular o state. Essa
+leitura é barrada, o recurso vira *tainted* e o apply para.
+
+**O bucket existe** — só o passo de leitura falhou.
+
+### Contorno
+
+```bash
+terraform untaint aws_s3_bucket.state
+terraform apply -refresh=false
+```
+
+`-refresh=false` pula a leitura bloqueada. As demais chamadas
+(`GetBucketVersioning`, `GetBucketEncryption`, `GetPublicAccessBlock`) são
+permitidas, então versionamento, criptografia e bloqueio público aplicam normal.
+
+O mesmo vale para o `destroy` do backend. O `rodar-tf05.sh` já trata isso.
+
+A infraestrutura principal **não** é afetada: o `plan` com refresh completo roda
+sem erro e devolve `No changes`.
+
+## Resultado da execução (10/09/2026)
+
+| Etapa | Resultado |
+|---|---|
+| Backend (S3 + DynamoDB) | 6 recursos |
+| Infra principal | **12 recursos** |
+| State migrado para o S3 | ✅ `terraform.tfstate` · 40 KB |
+| RDS | `available` após ~11 min · PostgreSQL 15.17 |
+| EC2 → RDS via psql | ✅ tabela `orders` com 3 registros |
+| `plan` final | ✅ `No changes` |
+| Destroy | 18 recursos · conta verificada zerada |
+
+Conta do lab: `925874601971` · `us-east-1`
+
 ## Decisões de projeto
 
 ### O banco é privado por dois mecanismos, não um

@@ -1,0 +1,29 @@
+=== EVIDENCIA 1: STATE REMOTO NO S3 ===
+
+--- arquivo do state no bucket ---
+2026-09-10 21:33:35      40486 terraform.tfstate
+
+--- versionamento (protege contra state corrompido) ---
+{
+    "Status": "Enabled"
+}
+
+--- criptografia em repouso ---
+{
+    "SSEAlgorithm": "AES256"
+}
+
+--- bloqueio de acesso publico (4 eixos) ---
+{
+    "BlockPublicAcls": true,
+    "IgnorePublicAcls": true,
+    "BlockPublicPolicy": true,
+    "RestrictPublicBuckets": true
+}
+
+--- tabela de lock no DynamoDB ---
+{
+    "Nome": "technova-tfstate-lock-3225002",
+    "PartitionKey": "LockID",
+    "Status": "ACTIVE"
+}

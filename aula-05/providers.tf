@@ -29,7 +29,7 @@ terraform {
   #   2. colar o bucket abaixo
   #   3. cd .. && terraform init   (migra o state local para o S3)
   backend "s3" {
-    bucket         = "__PREENCHER_COM_O_OUTPUT_DO_BACKEND__"
+    bucket         = "technova-tfstate-3225002-ae5e039c"
     key            = "aula-05/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
