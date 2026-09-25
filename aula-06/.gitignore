@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+tfplan
+tfplan.binary
+
+# .terraform.lock.hcl NAO entra aqui: ele fixa o hash de cada provider e e o
+# que garante que outra maquina baixe exatamente a mesma versao.
+
+# Segredos
+*.tfvars.secret
+*.pem
+.env
