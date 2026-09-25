@@ -1,0 +1,91 @@
+====================================================================
+ Aula 06 — Biblioteca de Modulos Terraform
+ Aluno: Jose Henrique Teixeira Luiz — RA 3225002
+ Data (UTC): 2026-09-25 02:20:44Z
+ Terraform v1.15.8
+====================================================================
+
+$ terraform fmt -recursive -check
+(nenhum arquivo listado = tudo formatado)
+
+--------------------------------------------------------------------
+AMBIENTE: dev
+--------------------------------------------------------------------
+$ terraform validate
+Success! The configuration is valid.
+
+
+$ terraform providers
+
+Providers required by configuration:
+.
+├── provider[registry.terraform.io/hashicorp/aws] ~> 5.0
+├── module.vpc
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.api_sg
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.api_server
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.database
+│   └── provider[registry.terraform.io/hashicorp/aws]
+└── module.rds_sg
+    └── provider[registry.terraform.io/hashicorp/aws]
+
+
+--------------------------------------------------------------------
+AMBIENTE: staging
+--------------------------------------------------------------------
+$ terraform validate
+Success! The configuration is valid.
+
+
+$ terraform providers
+
+Providers required by configuration:
+.
+├── provider[registry.terraform.io/hashicorp/aws] ~> 5.0
+├── module.rds_sg
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.api_server
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.database
+│   └── provider[registry.terraform.io/hashicorp/aws]
+├── module.vpc
+│   └── provider[registry.terraform.io/hashicorp/aws]
+└── module.api_sg
+    └── provider[registry.terraform.io/hashicorp/aws]
+
+
+--------------------------------------------------------------------
+Os dois ambientes usam o MESMO codigo:
+$ diff environments/dev/main.tf environments/staging/main.tf
+  (sem diferenca — exit 0)
+
+A diferenca inteira entre os ambientes esta no tfvars:
+$ diff environments/dev/terraform.tfvars environments/staging/terraform.tfvars
+1c1
+< # Ambiente DEV — mesmos modulos do staging, variaveis diferentes.
+---
+> # Ambiente STAGING — mesmos modulos do dev, variaveis diferentes.
+4,5c4,5
+< environment = "dev"
+< vpc_cidr    = "10.0.0.0/16"
+---
+> environment = "staging"
+> vpc_cidr    = "10.1.0.0/16"
+8,11c8,11
+<   "public-1a"  = { cidr = "10.0.1.0/24", az = "us-east-1a", type = "public" }
+<   "public-1b"  = { cidr = "10.0.2.0/24", az = "us-east-1b", type = "public" }
+<   "private-1a" = { cidr = "10.0.3.0/24", az = "us-east-1a", type = "private" }
+<   "private-1b" = { cidr = "10.0.4.0/24", az = "us-east-1b", type = "private" }
+---
+>   "public-1a"  = { cidr = "10.1.1.0/24", az = "us-east-1a", type = "public" }
+>   "public-1b"  = { cidr = "10.1.2.0/24", az = "us-east-1b", type = "public" }
+>   "private-1a" = { cidr = "10.1.3.0/24", az = "us-east-1a", type = "private" }
+>   "private-1b" = { cidr = "10.1.4.0/24", az = "us-east-1b", type = "private" }
+14c14
+< db_name = "technova_dev"
+---
+> db_name = "technova_staging"
+19d18
+< # Restrinja ao seu IP: curl -s ifconfig.me
