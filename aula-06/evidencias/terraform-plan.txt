@@ -1,0 +1,79 @@
+====================================================================
+ Aula 06 — terraform plan nos dois ambientes
+ Aluno: Jose Henrique Teixeira Luiz — RA 3225002
+ Data (UTC): 2026-09-26 17:37:22Z
+ Conta do Learner Lab: 447916381827 — regiao us-east-1
+====================================================================
+
+--------------------------------------------------------------------
+AMBIENTE: dev
+--------------------------------------------------------------------
+$ terraform plan
+
+Plan: 21 to add, 0 to change, 0 to destroy.
+
+Recursos planejados:
+  module.api_server.aws_instance.esta will be created
+  module.api_sg.aws_security_group.este will be created
+  module.api_sg.aws_vpc_security_group_egress_rule.all[0] will be created
+  module.api_sg.aws_vpc_security_group_ingress_rule.por_cidr["tcp-22-0.0.0.0/0"] will be created
+  module.api_sg.aws_vpc_security_group_ingress_rule.por_cidr["tcp-3000-0.0.0.0/0"] will be created
+  module.database.aws_db_instance.este will be created
+  module.database.aws_db_subnet_group.este will be created
+  module.rds_sg.aws_security_group.este will be created
+  module.rds_sg.aws_vpc_security_group_ingress_rule.por_sg["PostgreSQL a partir do SG da API"] will be created
+  module.vpc.aws_internet_gateway.esta will be created
+  module.vpc.aws_route_table.private will be created
+  module.vpc.aws_route_table.public will be created
+  module.vpc.aws_route_table_association.private["private-1a"] will be created
+  module.vpc.aws_route_table_association.private["private-1b"] will be created
+  module.vpc.aws_route_table_association.public["public-1a"] will be created
+  module.vpc.aws_route_table_association.public["public-1b"] will be created
+  module.vpc.aws_subnet.esta["private-1a"] will be created
+  module.vpc.aws_subnet.esta["private-1b"] will be created
+  module.vpc.aws_subnet.esta["public-1a"] will be created
+  module.vpc.aws_subnet.esta["public-1b"] will be created
+  module.vpc.aws_vpc.esta will be created
+
+--------------------------------------------------------------------
+AMBIENTE: staging
+--------------------------------------------------------------------
+$ terraform plan
+
+Plan: 21 to add, 0 to change, 0 to destroy.
+
+Recursos planejados:
+  module.api_server.aws_instance.esta will be created
+  module.api_sg.aws_security_group.este will be created
+  module.api_sg.aws_vpc_security_group_egress_rule.all[0] will be created
+  module.api_sg.aws_vpc_security_group_ingress_rule.por_cidr["tcp-22-0.0.0.0/0"] will be created
+  module.api_sg.aws_vpc_security_group_ingress_rule.por_cidr["tcp-3000-0.0.0.0/0"] will be created
+  module.database.aws_db_instance.este will be created
+  module.database.aws_db_subnet_group.este will be created
+  module.rds_sg.aws_security_group.este will be created
+  module.rds_sg.aws_vpc_security_group_ingress_rule.por_sg["PostgreSQL a partir do SG da API"] will be created
+  module.vpc.aws_internet_gateway.esta will be created
+  module.vpc.aws_route_table.private will be created
+  module.vpc.aws_route_table.public will be created
+  module.vpc.aws_route_table_association.private["private-1a"] will be created
+  module.vpc.aws_route_table_association.private["private-1b"] will be created
+  module.vpc.aws_route_table_association.public["public-1a"] will be created
+  module.vpc.aws_route_table_association.public["public-1b"] will be created
+  module.vpc.aws_subnet.esta["private-1a"] will be created
+  module.vpc.aws_subnet.esta["private-1b"] will be created
+  module.vpc.aws_subnet.esta["public-1a"] will be created
+  module.vpc.aws_subnet.esta["public-1b"] will be created
+  module.vpc.aws_vpc.esta will be created
+
+--------------------------------------------------------------------
+Conferencia de seguranca (identica nos dois ambientes):
+--------------------------------------------------------------------
+  IAM a criar:             0  (o Learner Lab nega iam:CreateRole)
+  publicly_accessible:     false
+  storage_encrypted:       true
+  http_tokens (IMDSv2):    "required"
+  regra 5432 por SG:       1 regra(s) — origem = SG da API, nenhum CIDR
+  senha no plan:           0 ocorrencias em texto claro
+
+Os dois ambientes planejam o MESMO numero de recursos a partir do MESMO
+codigo — a diferenca esta apenas nos CIDRs e nos nomes.

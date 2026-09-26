@@ -27,10 +27,22 @@ locals {
     ]) : r.key => r
   }
 
+  # Duas armadilhas de for_each com valor que so existe depois do apply — o
+  # source_security_group_id e o ID de OUTRO Security Group:
+  #
+  # 1. A CHAVE nao pode conter esse ID. Aqui a chave e a description, que e
+  #    texto estatico escrito na configuracao.
+  # 2. O FILTRO tambem nao pode testar esse ID. Comparar um valor desconhecido
+  #    com null da um resultado desconhecido, e isso torna o mapa INTEIRO
+  #    indeterminado em tempo de plan.
+  #
+  # Por isso o filtro olha para cidr_blocks, que e estatico: a validation da
+  # variavel ja garante que a regra tem exatamente um dos dois campos, entao
+  # "sem cidr_blocks" equivale a "tem SG de origem".
   sg_rules = {
     for regra in var.ingress_rules :
-    "${regra.protocol}-${regra.from_port}-${regra.source_security_group_id}" => regra
-    if regra.source_security_group_id != null
+    regra.description => regra
+    if regra.cidr_blocks == null
   }
 }
 
