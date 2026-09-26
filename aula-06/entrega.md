@@ -17,7 +17,7 @@
 - [x] Módulo RDS reutilizável
 - [x] Composição entre módulos (output de um alimenta input de outro)
 - [x] Dois ambientes (dev + staging) usando os mesmos módulos
-- [ ] `terraform validate` e `terraform plan` sem erros nos dois ambientes
+- [x] `terraform validate` e `terraform plan` sem erros nos dois ambientes
 - [x] README documentando cada módulo (inputs, outputs, exemplo)
 
 ### Detalhe das evidências
@@ -57,9 +57,36 @@ Toda a diferença entre os ambientes cabe no `terraform.tfvars`:
 
 ## Evidência do terraform plan
 
+Rodado no **AWS Academy Learner Lab**, conta `447916381827`, região `us-east-1`.
+Arquivo completo em
+[`aula-06/evidencias/terraform-plan.txt`](https://github.com/zzin742/unifaat-devops-portfolio/blob/main/aula-06/evidencias/terraform-plan.txt).
+
 ```
-(a ser colado após rodar no Learner Lab)
+AMBIENTE: dev
+Plan: 21 to add, 0 to change, 0 to destroy.
+
+AMBIENTE: staging
+Plan: 21 to add, 0 to change, 0 to destroy.
+
+Conferencia de seguranca (identica nos dois ambientes):
+  IAM a criar:             0  (o Learner Lab nega iam:CreateRole)
+  publicly_accessible:     false
+  storage_encrypted:       true
+  http_tokens (IMDSv2):    "required"
+  regra 5432 por SG:       1 regra(s) - origem = SG da API, nenhum CIDR
+  senha no plan:           0 ocorrencias em texto claro
 ```
+
+Os dois ambientes planejam o mesmo número de recursos a partir do mesmo código.
+
+> **Um erro que só o `plan` pegou.** O `terraform validate` passava, mas o
+> `plan` falhava com `Invalid for_each argument` no módulo `security-group`: a
+> chave do `for_each` continha o `source_security_group_id`, que só existe depois
+> do apply, e o filtro testava esse mesmo ID contra `null` — o que torna o mapa
+> inteiro indeterminado em tempo de plan. A correção foi usar a `description`
+> como chave e filtrar por `cidr_blocks`, que são estáticos. Vale registrar
+> porque é a diferença prática entre `validate` (sintaxe e tipos) e `plan`
+> (o grafo resolvido de verdade).
 
 ### terraform validate — os dois ambientes
 
