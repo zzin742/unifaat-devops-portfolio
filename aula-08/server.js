@@ -1,4 +1,5 @@
 const express = require('express');
+const variavelNaoUsada = 'quebra o lint de proposito'
 const cors = require('cors');
 
 const app = express();
