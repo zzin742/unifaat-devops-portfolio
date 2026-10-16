@@ -1,0 +1,159 @@
+# CI da Aula 08 — TechNova API
+# O workflow fica na RAIZ do repositorio porque o GitHub Actions so executa
+# arquivos em .github/workflows/ da raiz. O codigo da aula vive em aula-08/,
+# por isso todo job usa `working-directory: aula-08`.
+name: CI Aula 08
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aula-08/**'
+      - '.github/workflows/ci-aula08.yml'
+  pull_request:
+    paths:
+      - 'aula-08/**'
+      - '.github/workflows/ci-aula08.yml'
+  workflow_dispatch:
+
+# B4 — cancela execucoes anteriores do mesmo ref ainda em andamento.
+concurrency:
+  group: ci-aula08-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: aula-08
+
+jobs:
+  # ----------------------------------------------------------------- LINT
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 20 (com cache do npm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm                      # B2 — cache de dependencias
+          cache-dependency-path: aula-08/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Rodar ESLint
+        run: npm run lint
+
+  # ----------------------------------------------------------------- TEST
+  test:
+    name: Testes (Jest · Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    needs: lint                            # R1 — so roda se o lint passar
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20']                 # B1 — matrix strategy
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node ${{ matrix.node }} (com cache do npm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: aula-08/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Rodar testes com coverage
+        run: npm run test:ci
+
+      - name: Publicar relatorio de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-node-${{ matrix.node }}
+          path: aula-08/coverage/
+          retention-days: 7
+
+  # ---------------------------------------------------------------- BUILD
+  build:
+    name: Build Docker + Smoke Test
+    runs-on: ubuntu-latest
+    needs: test                            # R1 — so roda se os testes passarem
+    env:
+      # R5 — secret referenciado. Valor ficticio, so para comprovar o uso.
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Conferir que o secret chegou (valor mascarado pelo GitHub)
+        run: |
+          if [ -z "$AWS_REGION" ]; then
+            echo "::error::secret AWS_REGION nao configurado no repositorio"
+            exit 1
+          fi
+          echo "AWS_REGION recebido com ${#AWS_REGION} caracteres: $AWS_REGION"
+
+      - name: Build da imagem Docker
+        run: docker build -t technova-api:${{ github.sha }} -t technova-api:latest .
+
+      - name: Smoke test no container      # B5
+        run: |
+          docker run -d --name technova-smoke -p 3000:3000 technova-api:${{ github.sha }}
+          for i in $(seq 1 15); do
+            if curl -fsS http://localhost:3000/health; then
+              echo "\nhealth check OK na tentativa $i"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::health check falhou"
+          docker logs technova-smoke
+          exit 1
+
+      - name: Parar e remover o container
+        if: always()
+        run: docker rm -f technova-smoke || true
+
+  # ------------------------------------------------------------ PR COMMENT
+  comentar-no-pr:
+    name: Comentar resultado no PR
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]             # B3
+    if: github.event_name == 'pull_request' && always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Publicar comentario com o resultado
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const r = {
+              lint:  '${{ needs.lint.result }}',
+              test:  '${{ needs.test.result }}',
+              build: '${{ needs.build.result }}',
+            };
+            const icone = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : '❌';
+            const corpo = [
+              '## Resultado do CI — Aula 08',
+              '',
+              '| Etapa | Status |',
+              '|---|---|',
+              `| Lint (ESLint) | ${icone(r.lint)} ${r.lint} |`,
+              `| Testes (Node 18 e 20) | ${icone(r.test)} ${r.test} |`,
+              `| Build Docker + smoke | ${icone(r.build)} ${r.build} |`,
+              '',
+              `Commit: \`${context.sha.substring(0, 7)}\``,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: corpo,
+            });
