@@ -195,7 +195,32 @@ gastar seu tempo procurando `console.log`.
 - `0.0.0.0` dentro de um container é frequentemente **correto**, porque é assim
   que o serviço fica acessível fora dele.
 
-**Falsos negativos — o que passa batido**
+**Um falso negativo que encontrei testando — e corrigi**
+
+A primeira versão da regra de credencial era:
+
+```js
+/(password|senha|secret|api[_-]?key|token)\s*[:=]\s*['"][^'"]{4,}['"]/gi
+```
+
+Ela pegava `const apiKey = "sk-..."` mas **deixava passar**
+`const senhaDoBanco = 'Pr0ducao2026!'` — porque exigia a palavra-chave colada
+no `=`, e ali vinha `DoBanco` no meio. Descobri isso rodando o PR de
+demonstração: esperava 6 achados CRITICAL e vieram 5.
+
+A correção foi aceitar afixos dos dois lados:
+
+```js
+/\w*(password|senha|secret|api[_-]?key|token)\w*\s*[:=]\s*['"][^'"]{4,}['"]/gi
+```
+
+Agora pega `senhaDoBanco`, `dbPassword`, `apiKeyProd` e `userToken`, e continua
+ignorando `nomeDoUsuario`. O episódio é a própria tese deste documento em
+miniatura: **a régua só enxerga o que alguém pensou em escrever nela**, e o
+nome de variável que o desenvolvedor escolhe não tem obrigação de caber no
+padrão.
+
+**Outros falsos negativos — o que ainda passa batido**
 
 - Credencial montada em partes: `const k = p1 + p2` não casa com nenhum padrão.
 - SQL injection através de uma função intermediária, quando a concatenação

@@ -21,7 +21,8 @@ const { execSync } = require('node:child_process');
 const REGRAS = [
   { id: 'secret-hardcoded', severidade: 'CRITICAL',
     titulo: 'Credencial escrita no codigo',
-    regex: /(password|senha|secret|api[_-]?key|token)\s*[:=]\s*['"][^'"]{4,}['"]/gi,
+    // \w* dos dois lados pega nomes compostos: senhaDoBanco, dbPassword, apiKeyProd
+    regex: /\w*(password|senha|secret|api[_-]?key|token)\w*\s*[:=]\s*['"][^'"]{4,}['"]/gi,
     dica: 'Mova para variavel de ambiente ou GitHub Secrets.' },
 
   { id: 'aws-access-key', severidade: 'CRITICAL',
