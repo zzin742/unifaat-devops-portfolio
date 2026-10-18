@@ -192,6 +192,49 @@ avisar sobre o resto**. E é também a justificativa concreta do multi-stage —
 o estágio de build pode carregar 33 vulnerabilidades sem que uma única chegue
 ao runtime.
 
+### O Trivy achou uma CVE de verdade — e o gate estava certo
+
+Com a action corrigida, o Trivy reprovou a imagem:
+
+```
+tar (package.json)  CVE-2026-59873  CRITICAL  instalada 6.2.1  corrigida em 7.5.19
+tar: node-tar: Denial of Service via crafted gzip bomb
+```
+
+O `npm audit --omit=dev` tinha dado **zero**, então a vulnerabilidade não vinha
+das nossas dependências. Rastreando dentro do container:
+
+```
+/usr/local/lib/node_modules/npm/node_modules/tar/package.json
+```
+
+Vinha do **npm embutido na imagem base** `node:20-alpine`. E o runtime não
+precisa de npm: o container executa `node server.js` e nada mais. O `npm ci`
+acontece no estágio `deps`, que fica para trás no multi-stage.
+
+A correção foi remover o que não se usa:
+
+```dockerfile
+RUN apk add --no-cache tini \
+ && rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+```
+
+Resultado medido com o Trivy nas duas imagens:
+
+| Imagem | CRITICAL |
+|---|---:|
+| antes | **1** |
+| depois | **0** |
+
+O `/health` continua respondendo — nada no runtime dependia do npm.
+
+É o princípio de **superfície mínima** com um número do lado: toda ferramenta
+que fica na imagem final é código que pode ter CVE e que ninguém vai usar. A
+correção mais barata de uma vulnerabilidade costuma ser deletar o programa que
+a carrega.
+
 > No mesmo primeiro run, o job do Trivy falhou por outro motivo: eu havia
 > fixado `aquasecurity/trivy-action@0.28.0`, versão que não existe. A versão
 > publicada é a `0.36.0`. Vale como lembrete de que fixar versão de action

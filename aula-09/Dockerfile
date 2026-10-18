@@ -12,8 +12,15 @@ RUN npm ci --omit=dev && npm cache clean --force
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# tini como PID 1: encaminha SIGTERM e colhe processos zumbis
-RUN apk add --no-cache tini
+# tini como PID 1: encaminha SIGTERM e colhe processos zumbis.
+# Na mesma camada removemos npm e corepack: o runtime so executa
+# `node server.js`, e o npm embutido na imagem base arrasta um `tar`
+# vulneravel (CVE-2026-59873). Tirar o que nao se usa e a correcao mais
+# barata que existe — some a CVE e a imagem encolhe.
+RUN apk add --no-cache tini \
+ && rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 ENV NODE_ENV=production \
     PORT=3000
