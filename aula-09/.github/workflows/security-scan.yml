@@ -1,0 +1,62 @@
+# Security Scan (Aula 09) — BONUS: workflow dedicado a seguranca, separado do
+# AI review. Roda em PR, na main e semanalmente (vulnerabilidade nova aparece
+# sem ninguem mexer no codigo).
+name: Security Scan (Aula 09)
+
+on:
+  pull_request:
+    paths: ['aula-09/**', '.github/workflows/security-scan.yml']
+  push:
+    branches: [main]
+    paths: ['aula-09/**', '.github/workflows/security-scan.yml']
+  schedule:
+    - cron: '0 6 * * 1'        # toda segunda, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencias:
+    name: Auditoria de dependencias (npm audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aula-09
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aula-09/package-lock.json
+      - run: npm ci
+      - name: npm audit (falha so em high/critical)
+        run: npm audit --audit-level=high
+
+  imagem:
+    name: Scan da imagem Docker (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem
+        working-directory: aula-09
+        run: docker build -t technova-api:scan .
+
+      - name: Trivy — relatorio completo (nao bloqueia)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: technova-api:scan
+          format: table
+          exit-code: '0'
+          vuln-type: 'os,library'
+
+      - name: Trivy — bloqueia em CRITICAL
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: technova-api:scan
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          ignore-unfixed: true

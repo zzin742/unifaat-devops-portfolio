@@ -1,0 +1,68 @@
+# AI Review + Quality Gate — Aula 09
+# Copia de referencia. O workflow que executa esta na RAIZ do repositorio.
+name: AI Review (Aula 09)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Analise do diff + Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout com historico completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # precisa do historico para o git diff
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Rodar a analise
+        id: analise
+        continue-on-error: true   # deixa o comentario ser postado antes de falhar
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node aula-09/.github/scripts/ai-review.js
+
+      - name: Publicar (ou atualizar) o comentario no PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const corpo = fs.existsSync('ai-review-comment.md')
+              ? fs.readFileSync('ai-review-comment.md', 'utf8')
+              : '## Code Review automatizado\n\nA analise nao produziu saida.';
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // BONUS: atualiza o comentario existente em vez de empilhar um novo
+            const existentes = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const meu = existentes.data.find(c => c.body.includes('<!-- ai-review-bot -->'));
+
+            if (meu) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: meu.id, body: corpo });
+              core.info(`comentario ${meu.id} atualizado`);
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body: corpo });
+              core.info('comentario criado');
+            }
+
+      - name: Quality gate — CRITICAL bloqueia o merge
+        if: steps.analise.outcome == 'failure'
+        run: |
+          echo "::error::Quality gate reprovou: ha achados CRITICAL no diff deste PR."
+          exit 1
