@@ -159,6 +159,46 @@ esquecido teria o mesmo peso de uma credencial vazada. Gate que reclama de tudo
 
 ---
 
+## 5.1. O que o scan de segurança encontrou de verdade
+
+Rodando o `security-scan.yml` pela primeira vez, o `npm audit` acusou
+**33 vulnerabilidades — 28 delas `high`** — e derrubou o workflow.
+
+Antes de silenciar o alerta, olhei de onde vinham:
+
+```
+npm audit               → 33 vulnerabilidades (5 moderate, 28 high)
+npm audit --omit=dev    → found 0 vulnerabilities
+```
+
+**Todas as 33 estão na cadeia de desenvolvimento** (`jest`, `babel`,
+`@istanbuljs/load-nyc-config`). Nenhuma está em `express`, `cors` ou `dotenv`,
+que são as únicas dependências de produção.
+
+E isso importa por causa do Dockerfile: o estágio `deps` instala com
+`npm ci --omit=dev`, então **nenhum desses 33 pacotes entra na imagem final**.
+Reprovar o build por causa deles seria alarme falso — e alarme falso é
+exatamente o que ensina um time a ignorar o gate.
+
+A solução foi separar as duas perguntas:
+
+| Verificação | Escopo | Bloqueia? |
+|---|---|---|
+| `npm audit --omit=dev --audit-level=high` | o que roda em produção | **sim** |
+| `npm audit` (árvore completa) | tudo, inclusive dev | não, é informativo |
+
+É o mesmo raciocínio do quality gate do review: **bloquear pelo que causa dano,
+avisar sobre o resto**. E é também a justificativa concreta do multi-stage —
+o estágio de build pode carregar 33 vulnerabilidades sem que uma única chegue
+ao runtime.
+
+> No mesmo primeiro run, o job do Trivy falhou por outro motivo: eu havia
+> fixado `aquasecurity/trivy-action@0.28.0`, versão que não existe. A versão
+> publicada é a `0.36.0`. Vale como lembrete de que fixar versão de action
+> protege contra mudança inesperada, mas exige conferir que a tag existe.
+
+---
+
 ## 6. Quando confiar na automação, e quando exigir um humano
 
 ### Onde ela é melhor que uma pessoa

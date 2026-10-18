@@ -31,8 +31,19 @@ jobs:
           cache: npm
           cache-dependency-path: aula-09/package-lock.json
       - run: npm ci
-      - name: npm audit (falha so em high/critical)
-        run: npm audit --audit-level=high
+
+      # O que BLOQUEIA e so o que vai para a imagem. O Dockerfile e multi-stage
+      # e instala com --omit=dev, entao vulnerabilidade de jest/babel nunca
+      # chega ao runtime: reprovar por ela seria alarme falso.
+      - name: npm audit — dependencias de PRODUCAO (bloqueia em high)
+        working-directory: aula-09
+        run: npm audit --omit=dev --audit-level=high
+
+      # Relatorio completo, incluindo devDependencies. Informativo, nao bloqueia.
+      - name: npm audit — arvore completa (informativo)
+        working-directory: aula-09
+        if: always()
+        run: npm audit || true
 
   imagem:
     name: Scan da imagem Docker (Trivy)
@@ -45,7 +56,7 @@ jobs:
         run: docker build -t technova-api:scan .
 
       - name: Trivy — relatorio completo (nao bloqueia)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: technova-api:scan
           format: table
@@ -53,7 +64,7 @@ jobs:
           vuln-type: 'os,library'
 
       - name: Trivy — bloqueia em CRITICAL
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: technova-api:scan
           format: table
