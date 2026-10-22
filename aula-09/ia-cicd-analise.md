@@ -242,6 +242,75 @@ a carrega.
 
 ---
 
+## 5.2. A execução real no Amazon ECR
+
+Repositório `technova-api` criado no Learner Lab (`us-east-1`), com o
+`ecr-push.sh`:
+
+```
+==> Garantindo o repositorio ECR 'technova-api'
+    criado com scan on push habilitado
+==> Aplicando lifecycle policy (mantem 10 imagens; expira untagged em 7 dias)
+    aplicada
+==> Login no ECR
+    autenticado em <CONTA>.dkr.ecr.us-east-1.amazonaws.com
+==> Tags que serao publicadas
+    sha-1bf6b9c · latest · 1.2.3 · 1.2 · 1
+```
+
+As cinco tags apontam para a **mesma imagem** (47,5 MB), como esperado — tag no
+registry é ponteiro, não cópia:
+
+| Tag | Função |
+|---|---|
+| `sha-1bf6b9c` | rastreabilidade |
+| `latest` | conveniência |
+| `1.2.3`, `1.2`, `1` | contrato de versão, a partir da git tag `v1.2.3` |
+
+### O rollback por tag, testado de verdade
+
+Não basta publicar: o que importa é conseguir voltar. Apaguei a imagem local e
+puxei de volta do registry:
+
+```
+$ docker rmi -f <CONTA>.dkr.ecr.us-east-1.amazonaws.com/technova-api:sha-1bf6b9c
+$ docker pull  <CONTA>.dkr.ecr.us-east-1.amazonaws.com/technova-api:sha-1bf6b9c
+$ docker run -d -p 3099:3000 ...
+/health → {"status":"ok","timestamp":"2026-10-22T12:16:04.587Z","version":"1.0.0"}
+```
+
+É esse o teste que valida a estratégia de tagging: de um SHA de commit chego a
+um container rodando, sem depender de nada local.
+
+### Uma limitação honesta: o scan on push não produziu resultado
+
+O repositório foi criado com `--image-scanning-configuration scanOnPush=true`, e
+a AWS confirma a configuração:
+
+```
+$ aws ecr describe-repositories ... --query '...imageScanningConfiguration.scanOnPush'
+True
+$ aws ecr get-registry-scanning-configuration --query 'scanningConfiguration.scanType'
+BASIC
+```
+
+Mas `describe-image-scan-findings` não devolveu achados, e o `imageScanStatus`
+da imagem veio `null`. O motivo é o formato: o build saiu de um Mac ARM via
+buildx e produziu um **manifest list** multi-arquitetura, com manifestos de
+atestação — e o scan BASIC do ECR não processa esse tipo de índice, só imagens
+de arquitetura única.
+
+Duas saídas existiriam: buildar com `--provenance=false --platform linux/amd64`
+para gerar uma imagem simples, ou ativar o scan ENHANCED (Inspector), que o
+Learner Lab não permite.
+
+Prefiro registrar a limitação a esconder: **a configuração está correta e
+comprovada, o resultado é que não veio**. E a cobertura de vulnerabilidade não
+ficou descoberta — quem a garante aqui é o Trivy no `security-scan.yml`, que
+roda a cada PR e me fez encontrar e corrigir a CVE-2026-59873 descrita acima.
+
+---
+
 ## 6. Quando confiar na automação, e quando exigir um humano
 
 ### Onde ela é melhor que uma pessoa
