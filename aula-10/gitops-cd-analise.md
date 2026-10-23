@@ -171,23 +171,51 @@ ferramenta.
 
 ## 5. Limitações identificadas
 
-### O state do Terraform é local, e isso é um problema real
+### O state remoto: um problema que apareceu e foi corrigido
 
-O `provider.tf` não configura backend remoto. Como o apply roda em um runner
-efêmero do GitHub Actions, **cada execução começa sem state**. Na prática:
+A primeira versão usava backend **local**, e isso quebrou o GitOps na primeira
+demonstração. O plan do PR mostrou `+ create` para **todos** os recursos, mesmo
+com a infraestrutura já existindo — porque o runner do GitHub Actions é efêmero
+e começava sem state nenhum. No merge, o apply tentaria recriar tudo e falharia
+com `AlreadyExists`.
 
-- o apply tenta **criar de novo** recursos que já existem, e falha com
-  `AlreadyExists`;
-- não há lock, então dois merges próximos poderiam aplicar em paralelo;
-- `terraform destroy` pelo pipeline não funciona, porque não há state do que
-  destruir.
+Ou seja: sem state compartilhado, **o GitOps de Terraform é decorativo**. O
+plan não diz a verdade e o apply não funciona.
 
-O certo é **S3 + DynamoDB** para state e lock — que foi o que fiz na prova do
-1º bimestre, com uma tabela de `LockID`. Não implementei aqui porque o bucket
-de state precisaria sobreviver entre sessões do Lab, e o Learner Lab é
-reiniciado com frequência. **Registro como dívida consciente, não como
-esquecimento**: em um ambiente real este seria o primeiro item a corrigir, antes
-de qualquer bônus.
+A correção foi configurar **S3 + DynamoDB**:
+
+```hcl
+backend "s3" {
+  bucket         = "tfstate-aula10-3225002"
+  key            = "aula-10/terraform.tfstate"
+  region         = "us-east-1"
+  dynamodb_table = "tfstate-aula10-lock"
+  encrypt        = true
+}
+```
+
+| Peça | Para quê |
+|---|---|
+| Bucket S3 | guarda o state onde todo runner enxerga |
+| Versionamento no bucket | permite voltar a um state anterior se corromper |
+| Tabela DynamoDB (`LockID`) | impede dois applies simultâneos sobre o mesmo state |
+| `encrypt = true` | o state contém IDs e metadados; criptografado em repouso |
+
+O efeito foi imediato e mensurável. Antes: `+ create` em todos os recursos.
+Depois:
+
+```
+Plan: 0 to add, 1 to change, 0 to destroy.
+```
+
+O plan passou a dizer a verdade — reconhece o que existe e mostra só a mudança
+real.
+
+**Dois detalhes que valem registrar.** O bucket e a tabela são criados **fora**
+do Terraform, pela AWS CLI: é o problema do ovo e da galinha, o backend precisa
+existir antes do primeiro `init`. E o bucket foi criado via CLI e não com
+`aws_s3_bucket` pelo mesmo motivo das aulas de Big Data — a SCP do Learner Lab
+nega `s3:GetBucketObjectLockConfiguration`, que o recurso sempre lê.
 
 ### O SSH aceita conexão de qualquer IP
 
@@ -216,8 +244,7 @@ mas o ideal seria o próprio pipeline detectar e voltar sozinho.
 
 ## 6. O que eu melhoraria, em ordem
 
-1. **State remoto em S3 + DynamoDB.** Sem isso o GitOps de Terraform é
-   decorativo — é o item que mais compromete o resto.
+1. ~~State remoto em S3 + DynamoDB~~ — **feito**, ver seção 5.
 2. **OIDC em vez de credenciais em secret**, assim que o ambiente permitir.
    Elimina de uma vez a chave guardada e a renovação manual.
 3. **SSM Session Manager no lugar do SSH**, fechando a porta 22.
