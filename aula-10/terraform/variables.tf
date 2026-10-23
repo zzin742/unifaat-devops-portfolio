@@ -30,6 +30,12 @@ variable "instance_profile" {
   default     = "LabInstanceProfile"
 }
 
+variable "ambiente_label" {
+  description = "Rotulo de ambiente aplicado como tag — usado para demonstrar o plan no PR."
+  type        = string
+  default     = "homologacao"
+}
+
 variable "app_port" {
   description = "Porta em que a TechNova API escuta."
   type        = number

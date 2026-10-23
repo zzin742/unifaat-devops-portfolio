@@ -136,5 +136,8 @@ resource "aws_instance" "api" {
   # metadado e a maquina continuaria com a configuracao antiga.
   user_data_replace_on_change = true
 
-  tags = { Name = "${var.projeto}-api" }
+  tags = {
+    Name     = "${var.projeto}-api"
+    Ambiente = var.ambiente_label
+  }
 }
