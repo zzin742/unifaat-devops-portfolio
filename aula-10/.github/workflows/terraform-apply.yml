@@ -1,0 +1,68 @@
+# Terraform Apply on Merge — aula-10
+# O que foi revisado no plan do PR vira realidade quando entra na main.
+name: Terraform Apply (Aula 10)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aula-10/terraform/**.tf'
+      - 'aula-10/terraform/**.tfvars'
+      - '.github/workflows/terraform-apply.yml'
+  workflow_dispatch:
+
+# Dois applies simultaneos no mesmo state e receita de corrupcao.
+# Aqui NAO cancelamos o que esta em andamento: apply interrompido no meio
+# deixa recurso criado fora do state. Enfileira e espera.
+concurrency:
+  group: tf-apply-aula10
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aula-10/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Autenticar na AWS (credenciais de sessao do Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform apply
+        run: terraform apply -auto-approve -input=false
+
+      - name: Mostrar os outputs
+        run: terraform output
+
+      - name: Resumo no Summary do workflow
+        if: always()
+        run: |
+          {
+            echo "## Terraform Apply — Aula 10"
+            echo ""
+            echo '```'
+            terraform output 2>/dev/null || echo "(sem outputs)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

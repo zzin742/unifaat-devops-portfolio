@@ -1,0 +1,10 @@
+node_modules
+coverage
+__tests__
+screenshots
+.github
+.git
+.gitignore
+.eslintrc.json
+*.md
+.env*

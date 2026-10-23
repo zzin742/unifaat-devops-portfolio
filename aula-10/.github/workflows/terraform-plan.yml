@@ -1,0 +1,151 @@
+# Terraform Plan on PR — aula-10
+# Mostra o que vai mudar ANTES do merge, como comentario no proprio PR.
+name: Terraform Plan (Aula 10)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'aula-10/terraform/**.tf'
+      - 'aula-10/terraform/**.tfvars'
+      - '.github/workflows/terraform-plan.yml'
+
+concurrency:
+  group: tf-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  TF_WORKING_DIR: aula-10/terraform
+  AWS_REGION: us-east-1
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aula-10/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      # Learner Lab: as 3 credenciais TEMPORARIAS de sessao como secrets.
+      # Em producao isto seria OIDC + role IAM, sem chave nenhuma guardada —
+      # mas o Lab nao permite criar OIDC provider nem roles. Ver
+      # aula-10/gitops-cd-analise.md.
+      - name: Autenticar na AWS (credenciais de sessao do Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: terraform fmt -check          # BONUS
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: terraform plan
+        id: plan
+        run: |
+          set -o pipefail
+          terraform plan -no-color -input=false -out=tfplan 2>&1 | tee plan.txt
+          # Conta os recursos a destruir para o guardrail do passo seguinte.
+          terraform show -json tfplan > plan.json
+          DESTROY=$(python3 -c "
+          import json
+          d = json.load(open('plan.json'))
+          n = sum(1 for r in d.get('resource_changes', [])
+                  if 'delete' in r['change']['actions'])
+          print(n)
+          ")
+          echo "destroy_count=$DESTROY" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar (ou atualizar) o plan no PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const dir = 'aula-10/terraform';
+            let plano = '(plan nao foi gerado)';
+            try { plano = fs.readFileSync(`${dir}/plan.txt`, 'utf8'); } catch {}
+
+            // O comentario do GitHub tem limite de 65536 caracteres.
+            const LIMITE = 60000;
+            const cortado = plano.length > LIMITE;
+            if (cortado) plano = plano.slice(-LIMITE);
+
+            const destroy = '${{ steps.plan.outputs.destroy_count }}' || '0';
+            const icone = (r) => r === 'success' ? '✅' : r === 'failure' ? '❌' : '⚠️';
+
+            const partes = [
+              '<!-- terraform-plan-bot -->',
+              '## Terraform Plan — Aula 10',
+              '',
+              '| Etapa | Status |',
+              '|---|---|',
+              `| \`fmt -check\` | ${icone('${{ steps.fmt.outcome }}')} ${{ steps.fmt.outcome }} |`,
+              `| \`validate\` | ${icone('${{ steps.validate.outcome }}')} ${{ steps.validate.outcome }} |`,
+              `| \`plan\` | ${icone('${{ steps.plan.outcome }}')} ${{ steps.plan.outcome }} |`,
+              '',
+            ];
+
+            if (Number(destroy) > 0) {
+              partes.push(
+                `> ### ⚠️ Este plan DESTRÓI ${destroy} recurso(s)`,
+                '> Confira a lista abaixo antes de aprovar. Destruição não é',
+                '> reversível pelo pipeline — o estado anterior some.',
+                '');
+            }
+
+            if (cortado) partes.push('> O plan foi truncado; abaixo estão as últimas linhas.', '');
+
+            partes.push('<details><summary>Ver o plan completo</summary>', '',
+                        '```terraform', plano, '```', '', '</details>', '',
+                        `<sub>commit \`${context.sha.substring(0,7)}\`</sub>`);
+
+            const corpo = partes.join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // BONUS: atualiza o comentario existente em vez de empilhar um novo
+            const lista = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const meu = lista.data.find(c => c.body.includes('<!-- terraform-plan-bot -->'));
+
+            if (meu) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: meu.id, body: corpo });
+              core.info(`comentario ${meu.id} atualizado`);
+              return;
+            }
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: corpo });
+
+      # Plan invalido nao pode ser mergeado.
+      - name: Falhar se o plan nao passou
+        if: steps.plan.outcome == 'failure' || steps.validate.outcome == 'failure'
+        run: |
+          echo "::error::terraform validate/plan falhou — o PR nao pode ser mergeado."
+          exit 1
+
+      # BONUS: destroy exige aprovacao extra, entao o check fica vermelho.
+      - name: Guardrail — plan com destroy exige aprovacao
+        if: steps.plan.outputs.destroy_count != '0' && steps.plan.outputs.destroy_count != ''
+        run: |
+          echo "::error::Este plan destroi ${{ steps.plan.outputs.destroy_count }} recurso(s). Revise e aprove manualmente antes do merge."
+          exit 1
