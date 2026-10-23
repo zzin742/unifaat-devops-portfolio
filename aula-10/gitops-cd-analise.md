@@ -135,6 +135,34 @@ entram Rolling (substitui aos poucos), Blue-Green (sobe o ambiente paralelo e
 vira o tráfego de uma vez) ou Canary (manda 5% do tráfego para a versão nova e
 observa).
 
+### O downtime do Recreate, observado ao vivo
+
+Não precisei teorizar sobre o downtime: ele apareceu sozinho durante a
+demonstração. Ao fazer o merge do PR que mudava o Terraform, o `cd.yml` também
+disparou (o merge tocou `aula-10/**`). Checando o health no meio do processo:
+
+```
+00:38  curl http://3.226.97.118:3000/health
+       curl: (7) Failed to connect ... Couldn't connect to server
+
+00:39  curl http://3.226.97.118:3000/health
+       {"status":"ok","timestamp":"2026-10-23T00:39:25.104Z","version":"1.0.0"}
+```
+
+A instância estava `running`, o IP era o mesmo e a porta 3000 continuava aberta
+no security group — o que faltava era o container, entre o `docker rm` e o novo
+`docker run`.
+
+**Cerca de um minuto de indisponibilidade**, para uma aplicação que sobe em
+segundos. A maior parte desse tempo não é o container subindo: é o `docker
+pull` da imagem, que acontece **depois** da remoção do antigo.
+
+Isso aponta uma melhoria concreta e barata: **puxar a imagem antes de derrubar
+o container**. A janela cairia para o tempo de reiniciar, não o de baixar — é
+inclusive o que o [runbook de rollback](docs/runbook-rollback.md) já faz, por
+ser procedimento de emergência. O `cd.yml` segue a ordem canônica do Recreate
+que o enunciado pede, mas a observação fica registrada.
+
 ### A ordem dos passos no deploy, e por que ela importa
 
 No `cd.yml`, o **login no ECR vem antes do pull** — e isso não é detalhe de
